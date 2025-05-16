@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  members     User[]     @relation("OrganizationMembers")
+  services    Service[]
+  incidents   Incident[]
+}
+
+model User {
+  id           String         @id @default(cuid())
+  clerkUserId  String         @unique
+  email        String
+  name         String?
+  organizations Organization[] @relation("OrganizationMembers")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Service {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  status         Status       @default(Operational)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  incidents      Incident[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum Status {
+  Operational
+  DegradedPerformance
+  PartialOutage
+  MajorOutage
+  Maintenance
+}
+
+model Incident {
+  id             String         @id @default(cuid())
+  title          String
+  description    String
+  status         IncidentStatus @default(Investigating)
+  services       Service[]
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  organizationId String
+  updates        IncidentUpdate[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  resolvedAt     DateTime?
+}
+
+enum IncidentStatus {
+  Investigating
+  Identified
+  Monitoring
+  Resolved
+}
+
+model IncidentUpdate {
+  id         String   @id @default(cuid())
+  incident   Incident @relation(fields: [incidentId], references: [id])
+  incidentId String
+  message    String
+  status     IncidentStatus
+  createdAt  DateTime @default(now())
+}
